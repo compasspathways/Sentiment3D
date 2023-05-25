@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Clarke
+    given-names: Patrick
+  - family-names: Dougherty
+    given-names: Robert
+    orcid: https://orcid.org/0000-0002-1254-5943
+  - family-names: Principato
+    given-names: Cristiana
+  - family-names: Staples
+    given-names: Patrick
+title: "COMPASS Pathways 3d Sentiment Model"
+version: 1.0.0
+doi: TBD
+date-released: 2023-06-01
