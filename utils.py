@@ -1,16 +1,14 @@
+import csv
 import os
 import re
 import tempfile
-import warnings
 from io import BytesIO
-from types import MethodType
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
 import numpy as np
 import pandas as pd
 from scipy import stats
-from scipy.special import expit, logit
 
 from sentiment3d import Sentiment3D
 
@@ -59,7 +57,7 @@ def get_anew_df(url="https://e-lub.net/media/anew.pdf"):
     res = []
     for row in tmpdf.itertuples():
         val = {"word": row.word}
-        for c in HUMCOLS:
+        for c in SENTCOLS:
             mn, sd = row._asdict()[c].split("  ")
             val.update({c: float(mn.strip()), f"{c}_std": float(sd.strip(" ()"))})
         res.append(val)
@@ -107,7 +105,7 @@ def get_warriner(url="http://crr.ugent.be/papers/Ratings_Warriner_et_al.csv"):
 
     Alternate source: https://github.com/JULIELab/XANEW
     """
-    cols = ["word"] + SENTCOLS
+
     # We're only renaming the columns that we might use
     cmap = {
         "Word": "word",
@@ -120,9 +118,7 @@ def get_warriner(url="http://crr.ugent.be/papers/Ratings_Warriner_et_al.csv"):
     }
     resp = urlopen(url)
     # set keep_default_na=False so words like "null" are not interpreted as NaNs
-    df = pd.read_csv(resp, index_col=0, keep_default_na=False, low_memory=False).rename(
-        columns=cmap
-    )
+    df = pd.read_csv(resp, index_col=0, keep_default_na=False, low_memory=False).rename(columns=cmap)
     return df
 
 
@@ -158,9 +154,7 @@ def load_wan_ratings(file_path=None):
     Load the Warriner, ANEW and NRC ("wan") rating data
     """
     if not file_path:
-        file_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "human_wan.csv"
-        )
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "human_wan.csv")
     df = pd.read_csv(file_path, keep_default_na=False)
     for c in SENTCOLS + STDCOLS:
         df.loc[:, c] = pd.to_numeric(df.loc[:, c])
@@ -182,9 +176,7 @@ def get_reliable_words(df=None, std_quantile=0.5, max_dist=0.5):
 
     nrc_cols = [f"{c}_nrc" for c in SENTCOLS]
     war_cols = [f"{c}_warriner" for c in SENTCOLS]
-    whdf["dist"] = np.linalg.norm(
-        whdf.loc[:, war_cols].values - whdf.loc[:, nrc_cols].values, axis=1
-    )
+    whdf["dist"] = np.linalg.norm(whdf.loc[:, war_cols].values - whdf.loc[:, nrc_cols].values, axis=1)
     std_cols = [f"{s}_std_warriner" for s in SENTCOLS]
     # dist_thresh = whdf.dist.quantile(max_dist)
     scoredf = pd.DataFrame(index=whdf.index)
@@ -248,11 +240,7 @@ def sentiment_from_logits(model, utterances, logit_df=None):
         print(f"{missing} not in logits (n={len(missing)}).")
     el = logit_df.loc[logit_df.utterance.isin(utt_clean), anchors]
     # the same anchor word may appear in more than one anchor point, so we drop the duplicated columns
-    scores = (
-        (np.exp(el) / np.exp(el).sum(axis=0))
-        .loc[:, ~el.columns.duplicated()]
-        .to_dict(orient="records")
-    )
+    scores = (np.exp(el) / np.exp(el).sum(axis=0)).loc[:, ~el.columns.duplicated()].to_dict(orient="records")
     sentdf = pd.DataFrame(sentiment_from_scores(model, scores))
     sentdf["utterance"] = utt_clean
     sentdf.set_index("utterance", inplace=True)
@@ -263,7 +251,7 @@ def get_pvalues_tscore(r, n):
     """
     Given a dataframe of Pearson product-moment correlation coefficients
     (e.g., as from df.corr()) and the number of samples used to compute r,
-    retuns a dataframe of p-values by using r and n to estimatte t-scores:
+    returns a dataframe of p-values by using r and n to estimatte t-scores:
       https://stats.stackexchange.com/questions/320510/t-test-for-pearson-correlation-coeffcient
     """
     # convert r to t
@@ -277,7 +265,7 @@ def get_pvalues(r, n):
     """
     Given a dataframe of Pearson product-moment correlation coefficients
     (e.g., as from df.corr()) and the number of samples used to compute r,
-    retuns a dataframe of p-values based on scipy.stats.pearsonr. See:
+    returns a dataframe of p-values based on scipy.stats.pearsonr. See:
       https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html
 
     Note that if the dataframe used to compute r contains nans then the number
@@ -299,7 +287,7 @@ def get_pvalues(r, n):
 
 def df_corr(df):
     """
-    Simple wrapper around panda's DataFrame.corr funtion that also computes p-values.
+    Simple wrapper around panda's DataFrame.corr function that also computes p-values.
 
     returns the pearson correlation in r, the 2-tailed p-value in p, and the
     number of samples (i.e., not nan) for each pairwise comparison in n.
@@ -343,12 +331,8 @@ def get_stats(df, cols=["NRC", "Warr"]):
             r.append(corr["r"])
             p.append(corr["p"])
     n = corr["n"]
-    rdf = pd.DataFrame(
-        index=idx, columns=cols, data=np.array(r).reshape(len(NEWCOLS), len(cols))
-    )
-    pdf = pd.DataFrame(
-        index=idx, columns=cols, data=np.array(p).reshape(len(NEWCOLS), len(cols))
-    )
+    rdf = pd.DataFrame(index=idx, columns=cols, data=np.array(r).reshape(len(NEWCOLS), len(cols)))
+    pdf = pd.DataFrame(index=idx, columns=cols, data=np.array(p).reshape(len(NEWCOLS), len(cols)))
     return rdf, pdf, n, full_stats
 
 
@@ -370,9 +354,7 @@ def separate_utterances(df: pd.DataFrame) -> pd.DataFrame:
     utterances = []
     for row in df.itertuples():
         speaker = row.speaker
-        talk_turn = re.sub(
-            r"\([^)]*\)", "", row.talk_turn
-        )  # Remove everything between parentheses
+        talk_turn = re.sub(r"\([^)]*\)", "", row.talk_turn)  # Remove everything between parentheses
         turn_label = row.turn_label
         turn_number = row.turn_number
 
@@ -394,97 +376,48 @@ def separate_utterances(df: pd.DataFrame) -> pd.DataFrame:
                 utterances.append((turn_label, sentence.strip(), speaker, turn_number))
                 last_sentence = sentence.strip()
 
-    return pd.DataFrame(
-        utterances, columns=["turn_label", "utterance", "speaker", "turn_number"]
-    )
+    return pd.DataFrame(utterances, columns=["turn_label", "utterance", "speaker", "turn_number"])
 
 
-def generate_logits(df: pd.DataFrame, word_col: str, model: dict) -> pd.DataFrame:
+def generate_logits(utterances: list, model: dict, batch_size: int = 50) -> pd.DataFrame:
     """
-    Generates logits for sentiment analysis of utterances in a dataframe.
+    Generates a dataframelogits for sentiment analysis of utterances in a dataframe.
 
     Args:
-        df (pd.DataFrame): The dataframe containing utterances and sentiment information.
-        word_col (str): The column name in the dataframe that contains the utterances.
+        utterances (list): A list of utterances for which to generate logits.
         model (dict): A dictionary containing sentiment anchor words for the model.
+        batch_size: The size of the MNLI inference batches
 
     Returns:
         pd.DataFrame: A dataframe containing the logits for sentiment analysis.
-
-    Raises:
-        Any: Any exception that occurs during the batch processing.
-
     """
-    candidate_anchor_words = [
-        item for sublist in [model[k] for k in model] for item in sublist
-    ]
-    # df is the dataframe you want to calculate the logits for
-    words = df[word_col].tolist()
-    nas = Sentiment3D(anchor_spec=model, model_dir="facebook-bart-large-mnli")
-    MethodType(postprocess, nas.classifier)
 
-    B = 10
-    utterance_batches = [words[b * B : (b + 1) * B] for b in range(len(words) // B + 1)]
+    class_words = [model[k] for k in model]
+    candidate_anchor_words = [item for sublist in class_words for item in sublist]
+
+    utterance_batches = [
+        utterances[b * batch_size : (b + 1) * batch_size] for b in range(len(utterances) // batch_size + 1)
+    ]
+
+    nas = Sentiment3D(anchor_spec=model, model_dir="facebook-bart-large-mnli")
 
     for i, utterance_batch in enumerate(utterance_batches):
-        try:
-            start = time.time()
-            batch_logits = []
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                inferences = nas.classifier(utterance_batch, candidate_anchor_words)
+        batch_logits = []
+        inferences = nas.classifier(utterance_batch, candidate_anchor_words)
 
-            for inference in inferences:
-                sequence_logits = list(
-                    zip(inference["labels"], inference["entail_logits"])
-                )
-                sequence = inference["sequence"]
+        for inference in inferences:
+            sequence_logits = list(zip(inference["labels"], inference["entail_logits"]))
+            sequence = inference["sequence"]
 
-                for sl in sequence_logits:
-                    batch_logits.append((sequence, *sl))
+            for sl in sequence_logits:
+                batch_logits.append((sequence, *sl))
 
-            with open("data/logits_batch-append.csv", "a") as out:
-                csv_out = csv.writer(out)
-                csv_out.writerows(batch_logits)
-            print(f"time taken: {time.time() - start}")
-        except:
-            print("batch failure.")
+        with open("data/logits_batch-append.csv", "a") as out:
+            csv_out = csv.writer(out)
+            csv_out.writerows(batch_logits)
 
-    logits_df = pd.read_csv("logits_batch-append.csv", header=None)
+    logits_df = pd.read_csv("data/logits_batch-append.csv", header=None, keep_default_na=False)
     logits_df.columns = ["utterance", "anchor", "logit"]
-    logits_df = logits_df.pivot_table(
-        index="utterance", columns="anchor", values="logit"
-    )
+    logits_df = logits_df.pivot_table(index="utterance", columns="anchor", values="logit")
     logits_df.to_csv("data/logits.csv")
-    return logit_df
-
-
-def postprocess(model_outputs, multi_label=False):
-    candidate_labels = [outputs["candidate_label"] for outputs in model_outputs]
-    sequences = [outputs["sequence"] for outputs in model_outputs]
-    logits = np.concatenate([output["logits"].numpy() for output in model_outputs])
-    N = logits.shape[0]
-    n = len(candidate_labels)
-    num_sequences = N // n
-    reshaped_outputs = logits.reshape((num_sequences, n, -1))
-
-    if multi_label or len(candidate_labels) == 1:
-        # softmax over the entailment vs. contradiction dim for each label independently
-        contradiction_id = -1 if entailment_id == 0 else 0
-        entail_contr_logits = reshaped_outputs[..., [contradiction_id, entailment_id]]
-        scores = np.exp(entail_contr_logits) / np.exp(entail_contr_logits).sum(
-            -1, keepdims=True
-        )
-        scores = scores[..., 1]
-    else:
-        # softmax the "entailment" logits over all candidate labels
-        entail_logits = reshaped_outputs[..., entailment_id]
-        scores = np.exp(entail_logits) / np.exp(entail_logits).sum(-1, keepdims=True)
-
-    top_inds = list(reversed(scores[0].argsort()))
-    return {
-        "sequence": sequences[0],
-        "labels": [candidate_labels[i] for i in top_inds],
-        "scores": scores[0, top_inds].tolist(),
-        "entail_logits": reshaped_outputs[..., entailment_id][0, top_inds],
-    }
+    return logits_df
