@@ -1,13 +1,18 @@
-import tempfile
 import os
 import re
+import tempfile
+import warnings
 from io import BytesIO
+from types import MethodType
+from urllib.request import Request, urlopen
 from zipfile import ZipFile
-from urllib.request import urlopen, Request
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 from scipy import stats
-from scipy.special import logit, expit
+from scipy.special import expit, logit
+
+from sentiment3d import Sentiment3D
 
 # camelot is used to scrape the ANEW pdf tables, so if you're going to use that, be sure to install it
 # pip install camelot-py opencv-python-headless ghostscript
@@ -347,7 +352,18 @@ def get_stats(df, cols=["NRC", "Warr"]):
     return rdf, pdf, n, full_stats
 
 
-def separate_utterances(df):
+def separate_utterances(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Separates talk turns in a dataframe into individual utterances.
+
+    Args:
+        df: pd.DataFrame
+            The dataframe containing talk turns.
+
+    Returns:
+        pd.DataFrame: A new dataframe with separated utterances.
+
+    """
     END_OF_UTTERANCE_PUNCTUATION = ".!?"
     regexp = f"([^{END_OF_UTTERANCE_PUNCTUATION}]+[{END_OF_UTTERANCE_PUNCTUATION}])"
 
@@ -383,43 +399,92 @@ def separate_utterances(df):
     )
 
 
-def patch_model(nas):
-    # Monkey-patch postprocess to return entail_logits
-    from types import MethodType
+def generate_logits(df: pd.DataFrame, word_col: str, model: dict) -> pd.DataFrame:
+    """
+    Generates logits for sentiment analysis of utterances in a dataframe.
 
-    def postprocess(self, model_outputs, multi_label=False):
-        candidate_labels = [outputs["candidate_label"] for outputs in model_outputs]
-        sequences = [outputs["sequence"] for outputs in model_outputs]
-        logits = np.concatenate([output["logits"].numpy() for output in model_outputs])
-        N = logits.shape[0]
-        n = len(candidate_labels)
-        num_sequences = N // n
-        reshaped_outputs = logits.reshape((num_sequences, n, -1))
+    Args:
+        df (pd.DataFrame): The dataframe containing utterances and sentiment information.
+        word_col (str): The column name in the dataframe that contains the utterances.
+        model (dict): A dictionary containing sentiment anchor words for the model.
 
-        if multi_label or len(candidate_labels) == 1:
-            # softmax over the entailment vs. contradiction dim for each label independently
-            entailment_id = self.entailment_id
-            contradiction_id = -1 if entailment_id == 0 else 0
-            entail_contr_logits = reshaped_outputs[
-                ..., [contradiction_id, entailment_id]
-            ]
-            scores = np.exp(entail_contr_logits) / np.exp(entail_contr_logits).sum(
-                -1, keepdims=True
-            )
-            scores = scores[..., 1]
-        else:
-            # softmax the "entailment" logits over all candidate labels
-            entail_logits = reshaped_outputs[..., self.entailment_id]
-            scores = np.exp(entail_logits) / np.exp(entail_logits).sum(
-                -1, keepdims=True
-            )
+    Returns:
+        pd.DataFrame: A dataframe containing the logits for sentiment analysis.
 
-        top_inds = list(reversed(scores[0].argsort()))
-        return {
-            "sequence": sequences[0],
-            "labels": [candidate_labels[i] for i in top_inds],
-            "scores": scores[0, top_inds].tolist(),
-            "entail_logits": reshaped_outputs[..., self.entailment_id][0, top_inds],
-        }
+    Raises:
+        Any: Any exception that occurs during the batch processing.
 
-    nas.classifier.postprocess = MethodType(postprocess, nas.classifier)
+    """
+    candidate_anchor_words = [
+        item for sublist in [model[k] for k in model] for item in sublist
+    ]
+    # df is the dataframe you want to calculate the logits for
+    words = df[word_col].tolist()
+    nas = Sentiment3D(anchor_spec=model, model_dir="facebook-bart-large-mnli")
+    MethodType(postprocess, nas.classifier)
+
+    B = 10
+    utterance_batches = [words[b * B : (b + 1) * B] for b in range(len(words) // B + 1)]
+
+    for i, utterance_batch in enumerate(utterance_batches):
+        try:
+            start = time.time()
+            batch_logits = []
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                inferences = nas.classifier(utterance_batch, candidate_anchor_words)
+
+            for inference in inferences:
+                sequence_logits = list(
+                    zip(inference["labels"], inference["entail_logits"])
+                )
+                sequence = inference["sequence"]
+
+                for sl in sequence_logits:
+                    batch_logits.append((sequence, *sl))
+
+            with open("data/logits_batch-append.csv", "a") as out:
+                csv_out = csv.writer(out)
+                csv_out.writerows(batch_logits)
+            print(f"time taken: {time.time() - start}")
+        except:
+            print("batch failure.")
+
+    logits_df = pd.read_csv("logits_batch-append.csv", header=None)
+    logits_df.columns = ["utterance", "anchor", "logit"]
+    logits_df = logits_df.pivot_table(
+        index="utterance", columns="anchor", values="logit"
+    )
+    logits_df.to_csv("data/logits.csv")
+    return logit_df
+
+
+def postprocess(model_outputs, multi_label=False):
+    candidate_labels = [outputs["candidate_label"] for outputs in model_outputs]
+    sequences = [outputs["sequence"] for outputs in model_outputs]
+    logits = np.concatenate([output["logits"].numpy() for output in model_outputs])
+    N = logits.shape[0]
+    n = len(candidate_labels)
+    num_sequences = N // n
+    reshaped_outputs = logits.reshape((num_sequences, n, -1))
+
+    if multi_label or len(candidate_labels) == 1:
+        # softmax over the entailment vs. contradiction dim for each label independently
+        contradiction_id = -1 if entailment_id == 0 else 0
+        entail_contr_logits = reshaped_outputs[..., [contradiction_id, entailment_id]]
+        scores = np.exp(entail_contr_logits) / np.exp(entail_contr_logits).sum(
+            -1, keepdims=True
+        )
+        scores = scores[..., 1]
+    else:
+        # softmax the "entailment" logits over all candidate labels
+        entail_logits = reshaped_outputs[..., entailment_id]
+        scores = np.exp(entail_logits) / np.exp(entail_logits).sum(-1, keepdims=True)
+
+    top_inds = list(reversed(scores[0].argsort()))
+    return {
+        "sequence": sequences[0],
+        "labels": [candidate_labels[i] for i in top_inds],
+        "scores": scores[0, top_inds].tolist(),
+        "entail_logits": reshaped_outputs[..., entailment_id][0, top_inds],
+    }
