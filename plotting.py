@@ -121,21 +121,30 @@ def plot_combined_distributions(sample1, sample2, xlabels, group_labels):
             row=1,
             col=i + 1,
         )
-        fig.update_xaxes(title_text=x_label, row=1, col=i + 1)
+        fig.update_xaxes(
+            range=[-1, 1],
+            title_text=x_label,
+            row=1,
+            col=i + 1,
+            tickangle=0,
+            ticklabelstep=2,
+        )
 
-        fig.update_layout(
-            # title_text="Sentiments through the session",
-            yaxis=dict(title="Probability density"),
-            font=dict(size=18),
-            bargap=0.2,  # gap between bars of adjacent location coordinates
-            bargroupgap=0.1,
-        )  # gap between bars of the same location coordinates)
+    fig.update_layout(
+        # title_text="Sentiments through the session",
+        yaxis=dict(title="Probability density"),
+        font=dict(size=18),
+        bargap=0.2,  # gap between bars of adjacent location coordinates
+        bargroupgap=0.1,
+    )  # gap between bars of the same location coordinates)
 
     return fig
 
 
 def plot_timeseries(samples1, samples2, xlabels, group_labels):
-    fig = make_subplots(rows=3, cols=1, shared_yaxes=True, x_title="Time Index")
+    fig = make_subplots(
+        rows=3, cols=1, shared_yaxes=True, shared_xaxes=True, x_title="Time Index"
+    )
     for idx, (xlabel, sample1, sample2) in enumerate(
         zip(
             xlabels,
@@ -164,12 +173,12 @@ def plot_timeseries(samples1, samples2, xlabels, group_labels):
             line=dict(color=COLORS[-1]),
             opacity=OPACITY,
         )
+
         fig.add_trace(plt, row=idx + 1, col=1)
         fig.add_trace(plt1, row=idx + 1, col=1)
 
     for idx, label in enumerate(xlabels):
-        fig["layout"][f"yaxis{idx + 1}"]["title"] = f"{label}"
-    # fig["layout"][f"xaxis3"]["title"] = "Index"
+        fig["layout"][f"yaxis{idx + 1}"]["title"] = f"{label.capitalize()}"
 
     fig.update_layout(
         width=700,
@@ -182,6 +191,14 @@ def plot_timeseries(samples1, samples2, xlabels, group_labels):
         ),
     )
     fig["layout"]["annotations"][0]["font"]["size"] = FONTSIZE + 4
-    fig.update_yaxes(showgrid=False, showline=False, zerolinecolor="rgba(0,0,0,0)")
-    fig.update_xaxes(showgrid=False, showline=False, zerolinecolor="rgba(0,0,0,0)")
+    fig.update_yaxes(
+        range=[-0.5, 0.5], showgrid=False, showline=False, zerolinecolor="rgba(0,0,0,0)"
+    )
+    fig.update_xaxes(
+        showgrid=False,
+        showline=False,
+        zerolinecolor="rgba(0.5,0.5,0.5,0.3)",
+        ticklabelposition="outside right",
+    )
+
     return fig
