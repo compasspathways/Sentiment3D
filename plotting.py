@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -7,7 +6,6 @@ from plotly.subplots import make_subplots
 
 FONTCOLOR = "rgba(0.4,0.4,0.4,1.0)"
 GRIDCOLOR = "rgba(1.0,1.0,1.0,0.3)"
-FILL_COLOR = "rgb(.7,.7,.7)"
 COLORS = ["rgb(1, 138, 199)", "rgb(173, 214, 233)", "rgb(202, 110, 56)"]
 COMPASS_COL_SCALE = [
     "rgb(1, 138, 199)",
@@ -19,10 +17,9 @@ COMPASS_COL_SCALE = [
 
 FONTSIZE = 16
 OPACITY = 0.6
-BW = 0.1  # .1
 
 
-def plotly_setting():
+def plotly_settings():
     pio.kaleido.scope.default_format = "svg"
     pio.templates.default = "plotly_white"
 
@@ -142,9 +139,7 @@ def plot_combined_distributions(sample1, sample2, xlabels, group_labels):
 
 
 def plot_timeseries(samples1, samples2, xlabels, group_labels):
-    fig = make_subplots(
-        rows=3, cols=1, shared_yaxes=True, shared_xaxes=True, x_title="Time Index"
-    )
+    fig = make_subplots(rows=3, cols=1, shared_yaxes=True, shared_xaxes=True, x_title="Time Index")
     for idx, (xlabel, sample1, sample2) in enumerate(
         zip(
             xlabels,
@@ -186,14 +181,10 @@ def plot_timeseries(samples1, samples2, xlabels, group_labels):
         font=dict(size=FONTSIZE, color=FONTCOLOR),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        legend=dict(
-            font_size=FONTSIZE - 2, yanchor="top", y=1.1, xanchor="right", x=0.99
-        ),
+        legend=dict(font_size=FONTSIZE - 2, yanchor="top", y=1.1, xanchor="right", x=0.99),
     )
     fig["layout"]["annotations"][0]["font"]["size"] = FONTSIZE + 4
-    fig.update_yaxes(
-        range=[-0.5, 0.5], showgrid=False, showline=False, zerolinecolor="rgba(0,0,0,0)"
-    )
+    fig.update_yaxes(range=[-0.5, 0.5], showgrid=False, showline=False, zerolinecolor="rgba(0,0,0,0)")
     fig.update_xaxes(
         showgrid=False,
         showline=False,

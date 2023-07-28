@@ -10,15 +10,14 @@ from transformers import pipeline
 
 class Sentiment3D:
     """
-    Sentiment3D is a callable class that takes a string and returns valence, arousal, and
-    confidence (VAC) values. It is intended to take one sentence/utterance at a time. The VAC
-    values can be interpreted as the positivity or negativity of the input in the usual sense
-    of 'sentiment' (valence), the level of excitedness/calmness (arousal), and the degree of
-    confidence or lack thereof (confidence)
+    Sentiment3D is a callable class that takes a string or a list of strings and returns valence,
+    arousal, and confidence (VAC) values for the string, or a list of VAC tuples given a list of
+    strings. The VAC values can be interpreted as the positivity or negativity of the input in the
+    usual sense of 'sentiment' (valence), the level of excitedness/calmness (arousal), and the
+    degree of assuredness/confidence or lack thereof (confidence)
 
     Note:
-        Sentiment3D uses the zero-shot classifier available on hugginface.co as
-        facebook/bart-large-mnli.
+        Sentiment3D uses the zero-shot classifier facebook/bart-large-mnli from hugginface.co.
     """
 
     def __init__(self, anchor_spec="anchor_spec.json", model_dir=None, device=None, batch_size=20):
@@ -47,8 +46,15 @@ class Sentiment3D:
         self.model_name = codenamize(self.model_str)
         self.batch_size = batch_size
         print(f"model name: {self.model_name}")
-        device = device if device else torch.cuda.current_device() if torch.cuda.is_available() else -1
+        if not device:
+            if torch.cuda.is_available():
+                device = torch.cuda.current_device()
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = -1
 
+        self.device = device
         if model_dir:
             try:
                 self.classifier = pipeline(
@@ -108,7 +114,7 @@ class Sentiment3D:
         Utterance can be a string or a list of strings. Passing a list of strings
         should be much faster than looping when doing many utterances.
         """
-        # torch will flood you with PipelineChunkIterator warnings that seem to be harmless.
+        # torch may flood you with PipelineChunkIterator warnings that seem to be harmless.
         # https://github.com/huggingface/transformers/issues/23003
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -125,7 +131,8 @@ class Sentiment3D:
         Utterance can be a string or a list of strings. Passing a list of strings
         should be much faster than looping when doing many utterances.
 
-        :return sent: The estimated sentement values ("valence", )
+        :return sent: The estimated sentement values (valence, arousal, confidence).
+
         """
 
         def _sent(scores, return_scores):

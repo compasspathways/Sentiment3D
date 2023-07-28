@@ -11,17 +11,38 @@ A package for computing the three-dimensional sentiment scores and a Jupyter not
 </div>
 
 ## Contents
-The sentiment model code is in "sentiment3d" and an example that demonstrates the use of this model and reproduces the figures is in the notebook example.ipynb. 
+The sentiment model code is in "sentiment3d" and an example that demonstrates the use of this model is in the notebook example.ipynb. To reproduce all the figures in our paper, have a look at sentiment3d_paper.ipynb.
 
 ## Installation
 
 ```bash
+
 python -m pip install git+https://github.com/compasspathways/Sentiment3D
 ```
 
 ## Contributing
 
-Install dev requirements and add pre-commit hook:
+Install from source and run in a virtual env:
+
+```bash
+git clone git@github.com:compasspathways/Sentiment3D.git
+cd Sentiment3D
+python3 -m venv ./s3d_env
+source ./s3d_env/bin/activate
+python -m pip install -e .
+```
+
+To run the notebooks:
+
+```bash
+python -m pip install jupyterlab
+python -m ipykernel install --name "s3d_env" --user
+
+```
+
+After you start the notebook server, be sure to switch to the s3d_env kernel.
+
+Before making any pull requests, be sure to install dev requirements and add the pre-commit hooks:
 
 ```bash
 pip install -r requirements-dev.txt

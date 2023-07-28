@@ -18,6 +18,27 @@ from sentiment3d import Sentiment3D
 SENTCOLS = ["valence", "arousal", "dominance"]
 NEWCOLS = ["valence", "arousal", "confidence"]
 STDCOLS = [f"{c}_std" for c in SENTCOLS]
+COLMAP = {
+    "valence_nrc": "Valence NRC",
+    "arousal_nrc": "Arousal NRC",
+    "confidence_nrc": "Confidence NRC",
+    "valence_warriner": "Valence Warr",
+    "arousal_warriner": "Arousal Warr",
+    "confidence_warriner": "Confidence Warr",
+    "valence_anew": "Valence ANEW",
+    "arousal_anew": "Arousal ANEW",
+    "confidence_anew": "Confidence ANEW",
+    "valence": "Valence VAC",
+    "arousal": "Arousal VAC",
+    "confidence": "Confidence VAC",
+}
+
+
+def map_cols(df):
+    df.columns = [c.replace("dominance", "confidence") for c in df.columns]
+    cols = [c for c in COLMAP.keys() if c in df.columns]
+    df = df[cols].rename(columns=COLMAP)
+    return df
 
 
 # Functions to pull raw human ratings. We do not do any data manipulation here,
@@ -52,8 +73,6 @@ def get_anew_df(url="https://e-lub.net/media/anew.pdf"):
     tmpdf.dropna(inplace=True)
 
     # separate mean and std
-    # for c in cols:
-    #    df[c] =
     res = []
     for row in tmpdf.itertuples():
         val = {"word": row.word}
@@ -155,45 +174,11 @@ def load_wan_ratings(file_path=None):
     """
     if not file_path:
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "human_wan.csv")
+    # pandas will read the word "null" as a missing value unless we set keep_default_na=False.
     df = pd.read_csv(file_path, keep_default_na=False)
     for c in SENTCOLS + STDCOLS:
         df.loc[:, c] = pd.to_numeric(df.loc[:, c])
     return df
-
-
-def get_reliable_words(df=None, std_quantile=0.5, max_dist=0.5):
-    if not df:
-        df = load_wan_ratings()
-    # for the big test set, we drop anew as it's very small
-    bigdf = df.loc[df.source != "anew"].dropna(subset=SENTCOLS)
-    whdf = bigdf.pivot(index="word", columns="source")
-    whdf.columns = ["_".join(c) for c in whdf.columns]
-
-    # drop cases where we don't have overlap between nrc and warriner
-    whdf.dropna(subset=["valence_nrc", "valence_warriner"], inplace=True)
-    # Drop the empty NRD std cols
-    whdf.dropna(axis=1, inplace=True)
-
-    nrc_cols = [f"{c}_nrc" for c in SENTCOLS]
-    war_cols = [f"{c}_warriner" for c in SENTCOLS]
-    whdf["dist"] = np.linalg.norm(whdf.loc[:, war_cols].values - whdf.loc[:, nrc_cols].values, axis=1)
-    std_cols = [f"{s}_std_warriner" for s in SENTCOLS]
-    # dist_thresh = whdf.dist.quantile(max_dist)
-    scoredf = pd.DataFrame(index=whdf.index)
-    scoredf["dist"] = whdf.dist <= max_dist
-    if not isinstance(std_quantile, float):
-        std_thresh = whdf.loc[:, std_cols].quantile(std_quantile).iloc[0]
-        for c in std_cols:
-            scoredf[c] = whdf.loc[:, c] <= std_thresh[c]
-    else:
-        whdf["std_dist"] = np.linalg.norm(whdf.loc[:, std_cols].values, axis=1)
-        std_thresh = whdf.loc[:, "std_dist"].quantile(std_quantile)
-        scoredf["std_dist"] = whdf.loc[:, "std_dist"] <= std_thresh
-
-    idx = scoredf.all(axis=1)
-    scoredf = scoredf.loc[~idx]
-    extras = {"scoredf": scoredf, "std_thresh": std_thresh}
-    return whdf.loc[idx].copy(), extras
 
 
 def sentiment_from_scores(model, scores):
@@ -230,11 +215,12 @@ def sentiment_from_logits(model, utterances, logit_df=None):
     Compute sentiment scores given pre-computed logits, a model, and a list of utterances
     """
     if not logit_df:
-        logit_df = pd.read_csv("data/logits.csv", keep_default_na=False)
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "logits.csv")
+        logit_df = pd.read_csv(file_path, keep_default_na=False)
+
     anchors = [x for lst in model.values() for x in lst]
     us, ls = set(utterances).intersection(), set(logit_df.utterance)
     missing = us - ls
-    # Doing this with set intersection breaks the order, so just loop it
     utt_clean = [u for u in utterances if u not in missing]
     if len(missing) > 0:
         print(f"{missing} not in logits (n={len(missing)}).")
@@ -271,13 +257,12 @@ def get_pvalues(r, n):
     Note that if the dataframe used to compute r contains nans then the number
     of samples may vary from cell to cell. In this case, you should pass a dataframe
     or array of n that is the same size as r and contains the actual n for each cell.
-    If r is square (e.g., as from df.corr), n can be a vector with length identical
-    to the number of columns in r. E.g.,
-    df = pd.DataFrame()
-    r = df.corr()
-    notnan = (~df.isna()).astype(int)
-    n = np.dot(notnan.T, notnan)
-    p = get_pvalues(r, n)
+    E.g.,
+      df = pd.DataFrame()
+      r = df.corr()
+      notnan = (~df.isna()).astype(int)
+      n = np.dot(notnan.T, notnan)
+      p = get_pvalues(r, n)
     """
     p = r.copy()
     dist = stats.beta(n / 2 - 1, n / 2 - 1, loc=-1, scale=2)
@@ -338,7 +323,7 @@ def get_stats(df, cols=["NRC", "Warr"]):
 
 def separate_utterances(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Separates talk turns in a dataframe into individual utterances.
+    Parse talk turns in a dataframe into individual utterances using punctuation.
 
     Args:
         df: pd.DataFrame
