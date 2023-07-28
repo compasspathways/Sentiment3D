@@ -404,5 +404,6 @@ def generate_logits(utterances: list, model: dict, batch_size: int = 50) -> pd.D
     logits_df = pd.read_csv("data/logits_batch-append.csv", header=None, keep_default_na=False)
     logits_df.columns = ["utterance", "anchor", "logit"]
     logits_df = logits_df.pivot_table(index="utterance", columns="anchor", values="logit")
-    logits_df.to_csv("data/logits.csv")
+    file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "logits.csv")
+    logits_df.to_csv(file_path)
     return logits_df
