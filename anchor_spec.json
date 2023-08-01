@@ -1,0 +1,62 @@
+{
+  "---": [
+    "discouraged",
+    "feeble",
+    "inferior",
+    "loneliness",
+    "nothingness"
+  ],
+  "--+": [
+    "adequate",
+    "detached",
+    "resistant",
+    "serious",
+    "stoic"
+  ],
+  "-+-": [
+    "frustration",
+    "humiliation",
+    "panicked",
+    "suffering",
+    "terrified"
+  ],
+  "-++": [
+    "aggressive",
+    "controlling",
+    "defiant",
+    "destructive",
+    "enraged"
+  ],
+  "+--": [
+    "accepting",
+    "sheltered",
+    "soft",
+    "tranquil",
+    "tolerant"
+  ],
+  "+-+": [
+    "comfortable",
+    "confident",
+    "relaxed",
+    "secure",
+    "wise"
+  ],
+  "++-": [
+    "astonishing",
+    "awed",
+    "dazzled",
+    "eager",
+    "surprised"
+  ],
+  "+++": [
+    "exhilarated",
+    "joy",
+    "triumphant",
+    "victorious",
+    "powerful"
+  ],
+  "000": [
+    "neutral",
+    "permissiveness"
+  ]
+}
