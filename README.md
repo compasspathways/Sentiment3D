@@ -35,7 +35,7 @@ python -m pip install -e .
 To run the notebooks:
 
 ```bash
-python -m pip install jupyterlab
+python -m pip install jupyterlab ipywidgets
 python -m ipykernel install --name "s3d_env" --user
 
 ```
