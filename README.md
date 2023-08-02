@@ -6,7 +6,7 @@
 [![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/compasspathways/SentimentDD/blob/main/.pre-commit-config.yaml)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 
-A package for computing the three-dimensional sentiment scores and a Jupyter notebook for replicating the figures in the paper "[From a Large Language Model to Three-Dimensional Sentiment](https://LINK.TO.PREPRINT)".
+A package for computing the three-dimensional sentiment scores and a Jupyter notebook for replicating the figures in the paper "[From a Large Language Model to Three-Dimensional Sentiment](https://psyarxiv.com/kaeqy)".
 
 </div>
 
@@ -51,4 +51,4 @@ pre-commit install
 
 ## Citation
 
-Please cite our paper titled "[From a Large Language Model to Three-Dimensional Sentiment](https://LINK.TO.PREPRINT)".
+Please cite our paper titled "[From a Large Language Model to Three-Dimensional Sentiment](https://psyarxiv.com/kaeqy)".
