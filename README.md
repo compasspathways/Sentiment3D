@@ -12,6 +12,7 @@ A package for computing the three-dimensional sentiment scores and a Jupyter not
 
 ## Contents
 The sentiment model code is in "sentiment3d" and an example that demonstrates the use of this model is in the notebook example.ipynb. To reproduce all the figures in our paper, have a look at sentiment3d_paper.ipynb.
+The 3d sentiment model should run on any machine with 4GB of RAM or more.
 
 ## Installation
 

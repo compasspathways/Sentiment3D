@@ -1,12 +1,14 @@
 import json
 import warnings
 from types import MethodType
+import pathlib
 
 import numpy as np
 import torch
 from codenamize import codenamize
 from transformers import pipeline
 
+ANCHOR_PATH = pathlib.Path(__file__).parent.resolve() / "anchor_spec.json"
 
 class Sentiment3D:
     """
@@ -20,7 +22,7 @@ class Sentiment3D:
         Sentiment3D uses the zero-shot classifier facebook/bart-large-mnli from hugginface.co.
     """
 
-    def __init__(self, anchor_spec="anchor_spec.json", model_dir=None, device=None, batch_size=20):
+    def __init__(self, anchor_spec=ANCHOR_PATH, model_dir=None, device=None, batch_size=20):
         """Instantiate class instance
 
         :param anchor_spec: A dict specifying the anchor point classes or a string to a json file
