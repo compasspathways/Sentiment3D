@@ -1,4 +1,5 @@
 from distutils.core import setup
+import glob
 
 setup(
     name="sentiment3d",
@@ -17,4 +18,5 @@ setup(
         "plotly",
         "kaleido",
     ],
+    package_data={"sentiment3d": ["anchor_spec.json"]},
 )
