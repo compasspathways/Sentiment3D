@@ -50,6 +50,10 @@ pip install -r requirements-dev.txt
 pre-commit install
 ```
 
+## Interactive Demo
+
+Please check out the interactive demo on Hugging Face at https://huggingface.co/spaces/compasspathways/Sentiment3D
+
 ## Citation
 
 Please cite our paper titled "[From a Large Language Model to Three-Dimensional Sentiment](https://psyarxiv.com/kaeqy)".
