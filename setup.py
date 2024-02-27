@@ -15,8 +15,12 @@ setup(
         "torch",
         "transformers",
         "codenamize",
-        "plotly",
-        "kaleido",
     ],
+    extras_require={
+        "explore": [
+            "plotly",
+            "kaleido",
+        ]
+    },
     package_data={"sentiment3d": ["anchor_spec.json"]},
 )
