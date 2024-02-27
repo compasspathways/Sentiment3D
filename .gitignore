@@ -68,7 +68,7 @@ Temporary Items
 # *.ipr
 
 # CMake
-cmake-build-*/v
+cmake-build-*/
 
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
