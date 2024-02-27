@@ -16,11 +16,14 @@ setup(
         "transformers",
         "codenamize",
     ],
-    extras_require={
+    extras_requires={
         "explore": [
             "plotly",
             "kaleido",
-        ]
+            "jupyterlab",
+            "ipywidgets",
+        ],
+        "dev": ["pre-commit"],
     },
     package_data={"sentiment3d": ["anchor_spec.json"]},
 )
