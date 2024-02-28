@@ -15,8 +15,15 @@ setup(
         "torch",
         "transformers",
         "codenamize",
-        "plotly",
-        "kaleido",
     ],
+    extras_requires={
+        "explore": [
+            "plotly",
+            "kaleido",
+            "jupyterlab",
+            "ipywidgets",
+        ],
+        "dev": ["pre-commit"],
+    },
     package_data={"sentiment3d": ["anchor_spec.json"]},
 )
