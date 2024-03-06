@@ -1,0 +1,23 @@
+name: Production
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  build:
+    name: Build and Distribute Sentiment3D
+    runs-on: arm64-builder
+    timeout-minutes: 30
+
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+
+      - name: Build Sentiment3D Python package
+        run: |
+          python3 -m build
+
+      - name: Distribute Sentiment3D Python package
+        run: |
+          twine upload --repository-url https://pypi.internal.compasspathways.com dist/* -u ${{ secrets.COMPASS_PYPI_USER }} -p ${{ secrets.COMPASS_PYPI_PASSWORD }}
