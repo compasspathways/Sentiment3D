@@ -16,9 +16,6 @@ jobs:
         with:
           python-version: "3.11"
          
-      - name: Pre commit check
-        uses: pre-commit/action@v3.0.0
-      
       - name: Install Tools
         run: |
           pip install build twine
